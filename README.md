@@ -1,5 +1,7 @@
 # Navigation App
 
+Try it on https://map-demo-ruddy.vercel.app/
+
 A React-based navigation application that uses Google Maps API for routing and Google Gemini AI for natural language processing.
 
 ## Features
