@@ -24,6 +24,45 @@ const NavigationApp = () => {
   const directionsRendererRef = useRef(null);
   const directionsServiceRef = useRef(null);
 
+  // Cookie management functions
+  const setCookie = (name, value, days = 30) => {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+    document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+  };
+
+  const getCookie = (name) => {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  };
+
+  const clearCookie = (name) => {
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;`;
+  };
+
+  // Load API keys from cookies on startup
+  useEffect(() => {
+    const savedMapsKey = getCookie('googleMapsApiKey');
+    const savedGeminiKey = getCookie('geminiApiKey');
+    
+    if (savedMapsKey && savedMapsKey !== 'your_google_maps_api_key_here') {
+      setTempGoogleMapsKey(savedMapsKey);
+      console.log('Loaded Google Maps API key from cookie');
+    }
+    
+    if (savedGeminiKey && savedGeminiKey !== 'your_gemini_api_key_here') {
+      setTempGeminiKey(savedGeminiKey);
+      setGeminiApiKey(savedGeminiKey);
+      console.log('Loaded Gemini API key from cookie');
+    }
+  }, []);
+
   // Load Google Maps API dynamically
   useEffect(() => {
     const loadGoogleMapsAPI = () => {
@@ -294,8 +333,30 @@ const NavigationApp = () => {
     return tmp.textContent || tmp.innerText || '';
   };
 
+  const clearApiKeys = () => {
+    if (confirm('Are you sure you want to clear all saved API keys?')) {
+      clearCookie('googleMapsApiKey');
+      clearCookie('geminiApiKey');
+      setTempGoogleMapsKey('');
+      setTempGeminiKey('');
+      setGeminiApiKey('');
+      alert('All API keys cleared from cookies and form.');
+    }
+  };
+
   const handleSaveSettings = () => {
     setGeminiApiKey(tempGeminiKey);
+    
+    // Save API keys to cookies if they're not placeholder values
+    if (tempGoogleMapsKey && tempGoogleMapsKey !== 'your_google_maps_api_key_here') {
+      setCookie('googleMapsApiKey', tempGoogleMapsKey);
+      console.log('Google Maps API key saved to cookie');
+    }
+    
+    if (tempGeminiKey && tempGeminiKey !== 'your_gemini_api_key_here') {
+      setCookie('geminiApiKey', tempGeminiKey);
+      console.log('Gemini API key saved to cookie');
+    }
     
     // If Google Maps key changed, reload the map
     if (tempGoogleMapsKey !== process.env.REACT_APP_GOOGLE_MAPS_API_KEY) {
@@ -303,7 +364,7 @@ const NavigationApp = () => {
     }
     
     setShowSettings(false);
-    alert('Settings saved! Note: To persist API keys permanently, update the .env file and restart the server.');
+    alert('Settings saved! API keys are stored in cookies and will be remembered.');
   };
 
   const reloadMapWithNewKey = () => {
@@ -415,6 +476,9 @@ const NavigationApp = () => {
         
         if (status === 'OK' && results && results.length > 0) {
           alert('✅ Google Maps API Key is valid and working!\n\nSuccessfully geocoded: ' + results[0].formatted_address);
+          // Save successful API key to cookie
+          setCookie('googleMapsApiKey', tempGoogleMapsKey);
+          console.log('Google Maps API key saved to cookie');
         } else if (status === 'REQUEST_DENIED') {
           alert('❌ API Key is invalid or denied. Please check:\n1. API key is correct in .env file\n2. Maps JavaScript API is enabled\n3. Geocoding API is enabled\n4. Server has been restarted');
         } else if (status === 'ZERO_RESULTS') {
@@ -552,6 +616,9 @@ const NavigationApp = () => {
 
       if (response.ok && data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
         alert('✅ Gemini API Key is valid and working!\n\nResponse: ' + data.candidates[0].content.parts[0].text);
+        // Save successful API key to cookie
+        setCookie('geminiApiKey', tempGeminiKey);
+        console.log('Gemini API key saved to cookie');
       } else if (data.error) {
         alert(`❌ Gemini API Error:\n\n${data.error.message || 'Invalid API key'}\n\nStatus: ${data.error.status || 'Unknown'}`);
       } else {
@@ -911,25 +978,9 @@ Example response format:
                   <button
                     onClick={testGoogleMapsKey}
                     className="test-key-button"
-                    title="Test this API key"
+                    title="Test Google Maps API key"
                   >
                     🧪 Test
-                  </button>
-                  <button
-                    onClick={testDirectionsAPI}
-                    className="test-key-button"
-                    title="Test Directions API"
-                    style={{ marginLeft: '5px' }}
-                  >
-                    🗺️ Test Directions
-                  </button>
-                  <button
-                    onClick={testMapDisplay}
-                    className="test-key-button"
-                    title="Test Map Display"
-                    style={{ marginLeft: '5px' }}
-                  >
-                    🗺️ Test Map Display
                   </button>
                 </div>
               </div>
@@ -948,7 +999,7 @@ Example response format:
                   <button
                     onClick={testGeminiKey}
                     className="test-key-button"
-                    title="Test this API key"
+                    title="Test Gemini API key"
                   >
                     🧪 Test
                   </button>
@@ -973,6 +1024,12 @@ Example response format:
                   className="save-settings-button"
                 >
                   💾 Save Settings
+                </button>
+                <button
+                  onClick={clearApiKeys}
+                  className="clear-settings-button"
+                >
+                  🗑️ Clear All Keys
                 </button>
                 <button
                   onClick={() => {

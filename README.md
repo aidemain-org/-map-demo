@@ -94,9 +94,15 @@ The application will open in your browser at `http://localhost:3000`.
 ### API Key Testing
 Use the Settings panel (⚙️ icon) to test your API keys:
 - **Test Google Maps**: Uses Geocoding API to verify the key
-- **Test Directions**: Tests route finding with sample locations
-- **Test Map Display**: Checks if the map renders properly
 - **Test Gemini**: Sends a simple request to verify the key
+- **Auto-save**: Successful API keys are automatically saved to cookies
+- **Persistent**: Keys are remembered between browser sessions
+
+### Cookie Storage
+- API keys are automatically saved to browser cookies when tests succeed
+- Keys are loaded from cookies on app startup
+- Use "Clear All Keys" button to remove saved keys
+- Cookies expire after 30 days
 
 ## Project Structure
 
